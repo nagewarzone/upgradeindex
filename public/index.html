@@ -330,34 +330,32 @@ function showUpgradeNotification(message, color = '#155724') {
   // ปุ่มเพิ่ม TOPGM (ไม่มีการเปลี่ยนแปลง)
   document.getElementById('btnAddTopgm').onclick = async () => {
   const name = document.getElementById('upgradeName').value.trim();
-  if (!name) {
-    alert('กรุณากรอกชื่อตัวละครก่อน');
+    if (!name) {
+    alert('กรุณากรอกชื่อตัวละครก่อนเติม TOPGM');
     return;
   }
-
-  if (!confirm('ต้องการใช้ POINT 50 เพื่อเพิ่ม TOPGM +1 ใช่หรือไม่?')) return;
 
   const res = await fetch(apiURL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      action: 'usepoint',
+      action: 'add_topgm',
       username: loggedInUser,
       password: loggedInPass,
-      name, // เพิ่มตรงนี้
-      pointChange: -50,
-      topgmChange: 1
+      name
     })
   });
 
   const data = await res.json();
+
   if (data.success) {
-    alert('เพิ่ม TOPGM +1 และหัก POINT 50 เรียบร้อยแล้ว');
-    await loadUserStats();
+    alert('เพิ่ม TOPGM สำเร็จ!');
+    await loadUserStats(); // รีเฟรชข้อมูลผู้ใช้
   } else {
-    alert('ไม่สามารถเพิ่ม TOPGM ได้: ' + (data.message || 'POINT อาจไม่เพียงพอ'));
+    alert(data.message || 'ไม่สามารถเพิ่ม TOPGM ได้');
   }
 };
+
 
 </script>
 </body>
