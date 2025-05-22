@@ -125,6 +125,10 @@
       document.getElementById('warzoneCount').textContent = data.warzone;
       document.getElementById('POINT').textContent = data.point || 0;
       document.getElementById('userStats').style.display = 'block';
+    } else {
+      // ถ้า token invalid หรือข้อมูลไม่ถูกต้อง ให้ล็อกเอาท์อัตโนมัติ
+      document.getElementById('logoutBtn').click();
+      alert('เซสชันหมดอายุ กรุณาล็อกอินใหม่');
     }
   }
 
@@ -143,238 +147,183 @@
   });
 
   // ฟอร์มล็อกอิน
- document.getElementById('loginForm').onsubmit = async e => {
-  e.preventDefault();
-  const username = document.getElementById('loginUsername').value.trim();
-  const password = document.getElementById('loginPassword').value;
-  const resultP = document.getElementById('loginResult');
+  document.getElementById('loginForm').onsubmit = async e => {
+    e.preventDefault();
+    const username = document.getElementById('loginUsername').value.trim();
+    const password = document.getElementById('loginPassword').value;
+    const resultP = document.getElementById('loginResult');
 
-  resultP.textContent = ''; // ล้างข้อความเดิม
-  const loginButton = e.target.querySelector('button[type="submit"]');
-  loginButton.disabled = true;
-  loginButton.textContent = 'กำลังเข้าสู่ระบบ...';
+    resultP.textContent = ''; // ล้างข้อความเดิม
+    const loginButton = e.target.querySelector('button[type="submit"]');
+    loginButton.disabled = true;
+    loginButton.textContent = 'กำลังเข้าสู่ระบบ...';
 
-  try {
-    const res = await fetch(apiURL, {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({ action: 'login', username, password })
-    });
+    try {
+      const res = await fetch(apiURL, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ action: 'login', username, password })
+      });
 
-    if (!res.ok) throw new Error('Network response was not ok');
+      if (!res.ok) throw new Error('Network response was not ok');
 
-    const data = await res.json();
+      const data = await res.json();
 
-    if (data.success) {
-      loggedInUser = username;
-      loggedInPass = password;
-      localStorage.setItem('username', username);
-      localStorage.setItem('password', password);
-      resultP.style.color = 'green';
-      resultP.textContent = 'เข้าสู่ระบบสำเร็จ!';
-      document.getElementById('btnUpgrade').style.display = 'inline-block';
-      document.getElementById('logoutBtn').style.display = 'inline-block';
-      switchTab('upgrade');
-      await loadUserStats();
-    } else {
+      if (data.success) {
+        loggedInUser = username;
+        loggedInPass = password;
+        localStorage.setItem('username', username);
+        localStorage.setItem('password', password);
+        resultP.style.color = 'green';
+        resultP.textContent = 'เข้าสู่ระบบสำเร็จ!';
+        document.getElementById('btnUpgrade').style.display = 'inline-block';
+        document.getElementById('logoutBtn').style.display = 'inline-block';
+        switchTab('upgrade');
+        await loadUserStats();
+      } else {
+        resultP.style.color = 'red';
+        resultP.textContent = data.message || 'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง';
+      }
+    } catch (error) {
       resultP.style.color = 'red';
-      resultP.textContent = data.message || 'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง';
+      resultP.textContent = 'เกิดข้อผิดพลาดในการเชื่อมต่อ: ' + error.message;
+    } finally {
+      loginButton.disabled = false;
+      loginButton.textContent = 'เข้าสู่ระบบ';
     }
-  } catch (error) {
-    resultP.style.color = 'red';
-    resultP.textContent = 'เกิดข้อผิดพลาดในการเชื่อมต่อ: ' + error.message;
-  } finally {
-    loginButton.disabled = false;
-    loginButton.textContent = 'เข้าสู่ระบบ';
-  }
-};
+  };
 
+  // ฟอร์มสมัครสมาชิก
+  document.getElementById('registerForm').onsubmit = async e => {
+    e.preventDefault();
 
-  // ฟอร์มสมัครสมาชิก (ไม่มีการเปลี่ยนแปลง)
+    const username = document.getElementById('regUsername').value.trim();
+    const password = document.getElementById('regPassword').value;
+    const confirmPassword = document.getElementById('regConfirmPassword').value;
+    const resultP = document.getElementById('registerResult');
+
+    resultP.textContent = '';
+    if (password !== confirmPassword) {
+      resultP.style.color = 'red';
+      resultP.textContent = 'รหัสผ่านกับยืนยันรหัสผ่านไม่ตรงกัน';
+      return;
+    }
+
+    const registerButton = e.target.querySelector('button[type="submit"]');
+    registerButton.disabled = true;
+    registerButton.textContent = 'กำลังสมัครสมาชิก...';
+
+    try {
+      const res = await fetch(apiURL, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ action: 'register', username, password })
+      });
+
+      if (!res.ok) throw new Error('Network response was not ok');
+
+      const data = await res.json();
+
+      if (data.success) {
+        resultP.style.color = 'green';
+        resultP.textContent = 'สมัครสมาชิกสำเร็จ! กรุณาล็อกอิน';
+        switchTab('login');
+      } else {
+        resultP.style.color = 'red';
+        resultP.textContent = data.message || 'สมัครสมาชิกไม่สำเร็จ';
+      }
+    } catch (error) {
+      resultP.style.color = 'red';
+      resultP.textContent = 'เกิดข้อผิดพลาดในการเชื่อมต่อ: ' + error.message;
+    } finally {
+      registerButton.disabled = false;
+      registerButton.textContent = 'สมัครสมาชิก';
+    }
+  };
+
+  // ฟอร์มอัพเกรดไอเท็ม
   document.getElementById('upgradeForm').onsubmit = async e => {
-  e.preventDefault();
-  
-  // ลบการแจ้งเตือนเดิมถ้ามี
-  const oldNotify = document.getElementById('upgradeNotification');
-  if (oldNotify) oldNotify.remove();
+    e.preventDefault();
 
-  const name = document.getElementById('upgradeName').value.trim();
-  const resultP = document.getElementById('upgradeResult');
-  const upgradeButton = document.querySelector('#upgradeForm button[type="submit"]');
-  const originalButtonText = upgradeButton.textContent;
+    if (!loggedInUser || !loggedInPass) {
+      alert('กรุณาเข้าสู่ระบบก่อนอัพเกรด');
+      return;
+    }
 
-  // เปลี่ยนปุ่มและข้อความ
-  upgradeButton.textContent = 'กำลังรวมอุปกรณ์...';
-  upgradeButton.disabled = true;
- resultP.innerHTML = `
-  <div style="text-align: center;">
-    <img src="https://img2.pic.in.th/pic/image_2025-05-21_180926572.png" 
-         alt="กำลังอัปเกรด" 
-         style="width: 400px; margin-top: 10px;">
-  </div>
-`;
+    const name = document.getElementById('upgradeName').value.trim();
+    const resultP = document.getElementById('upgradeResult');
 
+    resultP.textContent = '';
+    const upgradeButton = e.target.querySelector('button[type="submit"]');
+    upgradeButton.disabled = true;
+    upgradeButton.textContent = 'กำลังอัพเกรด...';
 
-  // รอ 3 วินาที
-  await new Promise(resolve => setTimeout(resolve, 3000));
+    try {
+      const res = await fetch(apiURL, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+          action: 'upgrade',
+          username: loggedInUser,
+          password: loggedInPass,
+          name
+        })
+      });
 
-  // เรียก API
-  const res = await fetch(apiURL, {
-    method: 'POST',
-    headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({ action: 'upgrade', username: loggedInUser, password: loggedInPass, name })
-  });
+      if (!res.ok) throw new Error('Network response was not ok');
 
-  const data = await res.json();
+      const data = await res.json();
 
-  if (data.success) {
-  let color, message, imageURL;
+      if (data.success) {
+        resultP.style.color = 'green';
+        resultP.textContent = data.message || 'อัพเกรดสำเร็จ!';
+        await loadUserStats();
+      } else {
+        resultP.style.color = 'red';
+        resultP.textContent = data.message || 'อัพเกรดไม่สำเร็จ';
+      }
+    } catch (error) {
+      resultP.style.color = 'red';
+      resultP.textContent = 'เกิดข้อผิดพลาดในการเชื่อมต่อ: ' + error.message;
+    } finally {
+      upgradeButton.disabled = false;
+      upgradeButton.textContent = 'อัพเกรดไอเท็ม';
+    }
+  };
 
-  switch(data.result) {
-    case "สำเร็จ":
-      color = 'darkgreen';
-      message = 'อัปเกรดสำเร็จ! 🎉 คุณได้รับไอเท็มใหม่แล้ว';
-      imageURL = 'https://img2.pic.in.th/pic/Screenshot-2025-05-21-023115.png';
-      break;
-    case "ล้มเหลว":
-      color = '#cc6600';
-      message = 'อัปเกรดล้มเหลว! ขอให้โชคดีครั้งหน้า';
-      imageURL = 'https://img5.pic.in.th/file/secure-sv1/18a5fd9683439dec252c4ed8898ad9c4.png';
-      break;
-    case "แตก":
-      color = 'red';
-      message = 'ไอเท็มถูกทำลาย !!';
-      imageURL = 'https://img2.pic.in.th/pic/Screenshot-2025-05-21-023244.png';
-      break;
-    default:
-      color = 'blue';
-      message = data.result;
-      imageURL = '';
-  }
-
-  const resultP = document.getElementById('upgradeResult');
-  resultP.style.color = color;
-  resultP.style.textAlign = 'center';
-
-  // ซ่อนข้อความ - แสดงเฉพาะรูป
-  resultP.innerHTML = imageURL 
-    ? `<img src="${imageURL}" alt="${data.result}" style="width: 400px; margin-top: 10px;">`
-    : '';
-
-  showUpgradeNotification(message, color);
-  await loadUserStats();
-}
-
-   else {
-    resultP.style.color = 'red';
-    resultP.style.textAlign = 'left';
-    resultP.textContent = data.message || 'เกิดข้อผิดพลาดในการอัปเกรด';
-  }
-
-  // คืนค่าปุ่มเดิม
-  upgradeButton.textContent = originalButtonText;
-  upgradeButton.disabled = false;
-};
-
-
-
-// แก้ฟังก์ชันแจ้งเตือนให้รับสีด้วย
-function showUpgradeNotification(message, color = '#155724') {
-  let notifyDiv = document.getElementById('upgradeNotification');
-  const resultP = document.getElementById('upgradeResult');
-  
-  if (!notifyDiv) {
-    notifyDiv = document.createElement('div');
-    notifyDiv.id = 'upgradeNotification';
-    notifyDiv.style.padding = '15px 25px';
-    notifyDiv.style.borderRadius = '10px';
-    notifyDiv.style.boxShadow = '0 2px 10px rgba(0,0,0,0.2)';
-    notifyDiv.style.zIndex = '1000';
-    notifyDiv.style.textAlign = 'center';
-    notifyDiv.style.maxWidth = '320px';
-    notifyDiv.style.whiteSpace = 'normal';
-    notifyDiv.style.wordWrap = 'break-word';
-    notifyDiv.style.margin = '10px auto 0 auto';  // เว้นระยะบน และกลางจอแนวนอน
-    // แทรกไว้ใต้ resultP
-    resultP.parentNode.insertBefore(notifyDiv, resultP.nextSibling);
-  }
-
-  notifyDiv.innerHTML = '';
-
-  if (color === 'darkgreen') {
-    const img = document.createElement('img');
-    img.src = 'https://img5.pic.in.th/file/secure-sv1/image_2025-05-21_025140493-removebg-preview.png';
-    img.alt = 'สำเร็จ';
-    img.style.width = '200px';
-    img.style.height = '200px';
-    img.style.display = 'block';
-    img.style.margin = '0 auto 10px auto';
-    notifyDiv.appendChild(img);
-  }
-
-  const textNode = document.createElement('div');
-  textNode.textContent = message;
-  notifyDiv.appendChild(textNode);
-
-  if (color === 'darkgreen') {
-    notifyDiv.style.backgroundColor = '#d4edda';
-    notifyDiv.style.color = '#155724';
-    notifyDiv.style.border = '1px solid #c3e6cb';
-  } else if (color === '#cc6600') {
-    notifyDiv.style.backgroundColor = '#ffdb99';
-    notifyDiv.style.color = '#b35900';
-    notifyDiv.style.border = '1px solid #d18c1a';
-  } else if (color === 'red') {
-    notifyDiv.style.backgroundColor = '#f8d7da';
-    notifyDiv.style.color = '#721c24';
-    notifyDiv.style.border = '1px solid #f5c6cb';
-  } else if (color === 'blue') {
-    notifyDiv.style.backgroundColor = '#cce5ff';
-    notifyDiv.style.color = '#004085';
-    notifyDiv.style.border = '1px solid #b8daff';
-  } else {
-    notifyDiv.style.backgroundColor = '#d4edda';
-    notifyDiv.style.color = '#155724';
-    notifyDiv.style.border = '1px solid #c3e6cb';
-  }
-
-  setTimeout(() => {
-    if (notifyDiv) notifyDiv.remove();
-  }, 10000);
-}
-
-
-
-  // ปุ่มเพิ่ม TOPGM (ไม่มีการเปลี่ยนแปลง)
+  // ปุ่มเพิ่ม TOPGM
   document.getElementById('btnAddTopgm').onclick = async () => {
-  const name = document.getElementById('upgradeName').value.trim();
-    if (!name) {
-    alert('กรุณากรอกชื่อตัวละครก่อนเติม TOPGM');
-    return;
-  }
+    if (!loggedInUser || !loggedInPass) {
+      alert('กรุณาเข้าสู่ระบบก่อนใช้งาน');
+      return;
+    }
 
-  const res = await fetch(apiURL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      action: 'add_topgm',
-      username: loggedInUser,
-      password: loggedInPass,
-      name
-    })
-  });
+    if (!confirm('ต้องการใช้ 50 POINT เพื่อแลก +1 TOPGM ใช่หรือไม่?')) return;
 
-  const data = await res.json();
+    try {
+      const res = await fetch(apiURL, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+          action: 'addtopgm',
+          username: loggedInUser,
+          password: loggedInPass
+        })
+      });
 
-  if (data.success) {
-    alert('เพิ่ม TOPGM สำเร็จ!');
-    await loadUserStats(); // รีเฟรชข้อมูลผู้ใช้
-  } else {
-    alert(data.message || 'ไม่สามารถเพิ่ม TOPGM ได้');
-  }
-};
-
+      const data = await res.json();
+      if (data.success) {
+        alert('แลก +1 TOPGM สำเร็จ!');
+        await loadUserStats();
+      } else {
+        alert(data.message || 'แลก TOPGM ไม่สำเร็จ');
+      }
+    } catch (err) {
+      alert('เกิดข้อผิดพลาดในการเชื่อมต่อ: ' + err.message);
+    }
+  };
 
 </script>
+
 </body>
 </html>
