@@ -142,17 +142,26 @@
   });
 
   // ฟอร์มล็อกอิน
-  document.getElementById('loginForm').onsubmit = async e => {
-    e.preventDefault();
-    const username = document.getElementById('loginUsername').value.trim();
-    const password = document.getElementById('loginPassword').value;
-    const resultP = document.getElementById('loginResult');
+ document.getElementById('loginForm').onsubmit = async e => {
+  e.preventDefault();
+  const username = document.getElementById('loginUsername').value.trim();
+  const password = document.getElementById('loginPassword').value;
+  const resultP = document.getElementById('loginResult');
 
+  resultP.textContent = ''; // ล้างข้อความเดิม
+  const loginButton = e.target.querySelector('button[type="submit"]');
+  loginButton.disabled = true;
+  loginButton.textContent = 'กำลังเข้าสู่ระบบ...';
+
+  try {
     const res = await fetch(apiURL, {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({ action: 'login', username, password })
     });
+
+    if (!res.ok) throw new Error('Network response was not ok');
+
     const data = await res.json();
 
     if (data.success) {
@@ -170,7 +179,15 @@
       resultP.style.color = 'red';
       resultP.textContent = data.message || 'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง';
     }
-  };
+  } catch (error) {
+    resultP.style.color = 'red';
+    resultP.textContent = 'เกิดข้อผิดพลาดในการเชื่อมต่อ: ' + error.message;
+  } finally {
+    loginButton.disabled = false;
+    loginButton.textContent = 'เข้าสู่ระบบ';
+  }
+};
+
 
   // ฟอร์มสมัครสมาชิก (ไม่มีการเปลี่ยนแปลง)
   document.getElementById('upgradeForm').onsubmit = async e => {
